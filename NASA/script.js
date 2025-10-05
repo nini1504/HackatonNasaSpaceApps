@@ -1,140 +1,140 @@
 
-        document.addEventListener('DOMContentLoaded', function() {
-        
-            const unitButtons = document.querySelectorAll('.unit-btn');
-            unitButtons.forEach(button => {
-                button.addEventListener('click', function() {
-                    unitButtons.forEach(btn => btn.classList.remove('active'));
-                    this.classList.add('active');
-                });
-            });
-          
-            document.getElementById('search-btn').addEventListener('click', getWeather);
+document.addEventListener('DOMContentLoaded', function () {
+
+    const unitButtons = document.querySelectorAll('.unit-btn');
+    unitButtons.forEach(button => {
+        button.addEventListener('click', function () {
+            unitButtons.forEach(btn => btn.classList.remove('active'));
+            this.classList.add('active');
         });
+    });
 
-        // simulação
-        function simulateNASAPrediction(dateTime, tempUnit) {
-            
-            const baseTemp = 22; 
-      
-            const hourlyData = [];
-            for (let i = 0; i < 8; i++) {
-                const hourOffset = i * 3;
-                const tempVariation = Math.sin(i * Math.PI / 4) * 8; 
-                const tempCelsius = baseTemp + tempVariation;
-                const condition = getWeatherCondition(tempCelsius, i);
-                
-                hourlyData.push({
-                    time: hourOffset,
-                    tempCelsius: Math.round(tempCelsius * 10) / 10,
-                    condition: condition
-                });
-            }
-            
+    document.getElementById('search-btn').addEventListener('click', getWeather);
+});
 
-            const requestHour = new Date(dateTime).getHours();
-            const closestIndex = Math.floor(requestHour / 3) % 8;
-            const currentTempCelsius = hourlyData[closestIndex].tempCelsius;
-            const currentCondition = hourlyData[closestIndex].condition;
-            
-            return {
-                current: {
-                    temperature: convertTemperature(currentTempCelsius, tempUnit),
-                    condition: currentCondition
-                },
-                hourly: hourlyData.map(item => ({
-                    time: item.time,
-                    temperature: convertTemperature(item.tempCelsius, tempUnit),
-                    condition: item.condition
-                }))
-            };
-        }
+// simulação
+function simulateNASAPrediction(dateTime, tempUnit) {
 
-        function getWeatherCondition(tempCelsius, hourIndex) {
- 
-            if (tempCelsius > 30) return 'sunny';
-            if (tempCelsius > 25) return 'partly-cloudy';
-            if (tempCelsius > 18) {
-  
-                if (hourIndex >= 5 && hourIndex <= 7) return 'clear-night';
-                return 'partly-cloudy';
-            }
-            if (tempCelsius > 10) return 'cloudy';
-            if (tempCelsius > 5) return 'rainy';
-            if (tempCelsius > 0) return 'snowy';
-            return 'stormy';
-        }
+    const baseTemp = 22;
 
-        function convertTemperature(celsius, unit) {
-            switch(unit) {
-                case 'fahrenheit':
-                    return Math.round(((celsius * 9/5) + 32) * 10) / 10;
-                case 'kelvin':
-                    return Math.round((celsius + 273.15) * 10) / 10;
-                default: // celsius
-                    return celsius;
-            }
-        }
+    const hourlyData = [];
+    for (let i = 0; i < 8; i++) {
+        const hourOffset = i * 3;
+        const tempVariation = Math.sin(i * Math.PI / 4) * 8;
+        const tempCelsius = baseTemp + tempVariation;
+        const condition = getWeatherCondition(tempCelsius, i);
 
-        function getTemperatureSymbol(unit) {
-            switch(unit) {
-                case 'fahrenheit':
-                    return '°F';
-                case 'kelvin':
-                    return 'K';
-                default: // celsius
-                    return '°C';
-            }
-        }
+        hourlyData.push({
+            time: hourOffset,
+            tempCelsius: Math.round(tempCelsius * 10) / 10,
+            condition: condition
+        });
+    }
 
-        function getWeatherIcon(condition) {
-            const icons = {
-                'sunny': '☀️',
-                'partly-cloudy': '⛅',
-                'cloudy': '☁️',
-                'rainy': '🌧️',
-                'snowy': '❄️',
-                'stormy': '⛈️',
-                'clear-night': '🌙'
-            };
-            return icons[condition];
-        }
 
-        function getWeatherDescription(condition) {
-            const descriptions = {
-                'sunny': 'Sunny',
-                'partly-cloudy': 'Partly Cloudy',
-                'cloudy': 'Cloudy',
-                'rainy': 'Rainy',
-                'snowy': 'Snowy',
-                'stormy': 'Stormy',
-                'clear-night': 'Clear Night'
-            };
-            return descriptions[condition] || 'Unknown';
-        }
+    const requestHour = new Date(dateTime).getHours();
+    const closestIndex = Math.floor(requestHour / 3) % 8;
+    const currentTempCelsius = hourlyData[closestIndex].tempCelsius;
+    const currentCondition = hourlyData[closestIndex].condition;
 
-        function getWeather() {
-            const dateTime = document.getElementById('datetime').value;
-            const activeUnitBtn = document.querySelector('.unit-btn.active');
-            const tempUnit = activeUnitBtn ? activeUnitBtn.getAttribute('data-unit') : 'celsius';
+    return {
+        current: {
+            temperature: convertTemperature(currentTempCelsius, tempUnit),
+            condition: currentCondition
+        },
+        hourly: hourlyData.map(item => ({
+            time: item.time,
+            temperature: convertTemperature(item.tempCelsius, tempUnit),
+            condition: item.condition
+        }))
+    };
+}
 
-            if (!dateTime) {
-                alert('Please select a date and time');
-                return;
-            }
+function getWeatherCondition(tempCelsius, hourIndex) {
 
-            const weatherData = simulateNASAPrediction(dateTime, tempUnit);
+    if (tempCelsius > 30) return 'sunny';
+    if (tempCelsius > 25) return 'partly-cloudy';
+    if (tempCelsius > 18) {
 
-            displayWeather(weatherData, tempUnit);
-        }
+        if (hourIndex >= 5 && hourIndex <= 7) return 'clear-night';
+        return 'partly-cloudy';
+    }
+    if (tempCelsius > 10) return 'cloudy';
+    if (tempCelsius > 5) return 'rainy';
+    if (tempCelsius > 0) return 'snowy';
+    return 'stormy';
+}
 
-        function displayWeather(data, unit) {
+function convertTemperature(celsius, unit) {
+    switch (unit) {
+        case 'fahrenheit':
+            return Math.round(((celsius * 9 / 5) + 32) * 10) / 10;
+        case 'kelvin':
+            return Math.round((celsius + 273.15) * 10) / 10;
+        default: // celsius
+            return celsius;
+    }
+}
+
+function getTemperatureSymbol(unit) {
+    switch (unit) {
+        case 'fahrenheit':
+            return '°F';
+        case 'kelvin':
+            return 'K';
+        default: // celsius
+            return '°C';
+    }
+}
+
+function getWeatherIcon(condition) {
+    const icons = {
+        'sunny': '☀️',
+        'partly-cloudy': '⛅',
+        'cloudy': '☁️',
+        'rainy': '🌧️',
+        'snowy': '❄️',
+        'stormy': '⛈️',
+        'clear-night': '🌙'
+    };
+    return icons[condition];
+}
+
+function getWeatherDescription(condition) {
+    const descriptions = {
+        'sunny': 'Sunny',
+        'partly-cloudy': 'Partly Cloudy',
+        'cloudy': 'Cloudy',
+        'rainy': 'Rainy',
+        'snowy': 'Snowy',
+        'stormy': 'Stormy',
+        'clear-night': 'Clear Night'
+    };
+    return descriptions[condition] || 'Unknown';
+}
+
+function getWeather() {
+    const dateTime = document.getElementById('datetime').value;
+    const activeUnitBtn = document.querySelector('.unit-btn.active');
+    const tempUnit = activeUnitBtn ? activeUnitBtn.getAttribute('data-unit') : 'celsius';
+
+    if (!dateTime) {
+        alert('Please select a date and time');
+        return;
+    }
+
+    const weatherData = simulateNASAPrediction(dateTime, tempUnit);
+
+    displayWeather(weatherData, tempUnit);
+}
+
+function displayWeather(data, unit) {
     const tempDivInfo = document.getElementById('temp-div');
     const weatherInfoDiv = document.getElementById('weather-info');
     const weatherIcon = document.getElementById('weather-icon');
     const hourlyItemsDiv = document.getElementById('hourly-items');
 
-   
+
     weatherInfoDiv.innerHTML = '';
     hourlyItemsDiv.innerHTML = '';
     tempDivInfo.innerHTML = '';
@@ -156,22 +156,22 @@
 
     tempDivInfo.innerHTML = temperatureHTML;
     weatherInfoDiv.innerHTML = weatherHtml;
-    
+
     weatherIcon.innerHTML = `<div class="weather-emoji">${icon}</div>`;
 
     displayHourlyForecast(data.hourly, unit);
 }
 
-        function displayHourlyForecast(hourlyData, unit) {
-            const hourlyItemsDiv = document.getElementById('hourly-items');
-            const symbol = getTemperatureSymbol(unit);
+function displayHourlyForecast(hourlyData, unit) {
+    const hourlyItemsDiv = document.getElementById('hourly-items');
+    const symbol = getTemperatureSymbol(unit);
 
-            hourlyData.forEach(item => {
-                const time = `${item.time}:00`;
-                const temperature = item.temperature;
-                const icon = getWeatherIcon(item.condition);
+    hourlyData.forEach(item => {
+        const time = `${item.time}:00`;
+        const temperature = item.temperature;
+        const icon = getWeatherIcon(item.condition);
 
-                const hourlyItemHtml = `
+        const hourlyItemHtml = `
                     <div class="hourly-item">
                         <div class="time">${time}</div>
                         <div class="icon">${icon}</div>
@@ -179,7 +179,64 @@
                     </div>
                 `;
 
-                hourlyItemsDiv.innerHTML += hourlyItemHtml;
-            });
+        hourlyItemsDiv.innerHTML += hourlyItemHtml;
+    });
+}
+
+async function getValidate() {
+    const addressLine = document.getElementById('address').value;
+    const validationResultElement = document.getElementById('validation-result');
+
+    if (!addressLine) {
+        alert('Please insert an address');
+        return;
+    }
+
+    validationResultElement.textContent = 'Validating...';
+
+    const apiKey = "AIzaSyCldaDjKd5af0w6f3gGJ_Cy8ILMla_5um4"; 
+    const apiUrl = `https://addressvalidation.googleapis.com/v1:validateAddress?key=${apiKey}`;
+
+    const requestBody = {
+        "address": {
+            "addressLines": [addressLine]
+        }
+    };
+
+    try {
+        
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody)
+        });
+
+        
+        const data = await response.json();
+
+        
+        if (data.result && data.result.geocode && data.result.geocode.location) {
+            const location = data.result.geocode.location;
+            const nome = data.result.address.formattedAddress;
+            const latitude = location.latitude;
+            const longitude = location.longitude;
+            
+            // defining global variables for later use 
+            window.address = nome;
+            window.latitude = latitude;
+            window.longitude = longitude;
+            
+           
+            validationResultElement.textContent = `Local: ${nome}\n`;
+        
+        } else if (data.error) {
+            
+            validationResultElement.textContent = `Error: ${data.error.message}`;
+        } else {
+            validationResultElement.textContent = "Unable to find address. Try to include more information about the location, such as number, street, neighborhood, city, state and country.";
         }
 
+    } catch (error) {
+        validationResultElement.textContent = 'An error occurred during the request:\n' + error;
+    }
+}
