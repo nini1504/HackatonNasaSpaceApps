@@ -190,7 +190,7 @@ def result_forecast(lat,lon,date,time):
         forecast = forecast[(forecast['ds'] == date)]
         result.append(forecast['yhat'])
 
-    # Extract the forecasted values for each variable
+    # Extract the forecasted values for each variable and round to 2 decimal places
     C = (float(result[0].iloc[0]) - 273.15) 
     C = round(C, 2) # °C
     q = float(result[1].iloc[0])  # kg/kg
@@ -208,6 +208,7 @@ def result_forecast(lat,lon,date,time):
     RH = round(RH, 2) 
     chance_chuva = estimar_chance_chuva(C, q, P, vento, precip)
     chance_chuva = round(chance_chuva, 2)
+    
     # Return the results as a dictionary
     return {
         "Temperatura_C": C,
@@ -225,11 +226,12 @@ def result_forecast(lat,lon,date,time):
 app = Flask(__name__)
 CORS(app)
 
-
+# Route to serve the main HTML file
 @app.route('/')
 def serve_frontend():
     return send_file('/HackathonNasaSpaceApps/index.html')
 
+# Route to serve static files (CSS, JS, etc.)
 @app.route('/<path:filename>')
 def serve_static(filename):
     """Rota para servir arquivos estáticos (CSS, JS, etc.)."""
@@ -240,6 +242,7 @@ def serve_static(filename):
         return "File not found", 404
     return send_file(full_path)
 
+# API endpoint to handle forecast requests
 @app.route('/api/forecast', methods=['POST'])
 def forecast_api():
     data = request.json
@@ -249,9 +252,11 @@ def forecast_api():
     # time = data.get('time', time)
     timestamp = data.get('datetime')
     
+    # Validate input parameters
     if not all([lat, lon, timestamp]):
         return jsonify({"error": "Missing required parameters"}), 400
     
+    # Call the forecast function and handle exceptions
     try:
         dt_obj = datetime.strptime(timestamp, '%Y-%m-%dT%H:%M')
         date = dt_obj.strftime('%Y-%m-%d')
@@ -260,11 +265,14 @@ def forecast_api():
         hour_str = f"{hour:02d}:00:00"
         result = result_forecast(lat, lon, date, hour_str)   
 
-        
-        return jsonify(result)     
+        # Return of results as JSON
+        return jsonify(result)    
+    
+    # Handle exceptions and return error messages 
     except Exception as e:
         print(f"API error: {e}")
         return jsonify({"error: "f"Internal server error {str(e)}"}), 500
     
+# Run the Flask app
 if __name__ == '__main__':
     app.run(debug=True)
