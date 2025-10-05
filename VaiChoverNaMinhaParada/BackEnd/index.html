@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NASA Weather Forecast</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="/VaiChoverNaMinhaParada/BackEnd/style.css">
+</head>
+
+<body>
+    <div id="weather-container">
+        <h2>NASA Weather Forecast</h2>
+
+        <div class="form-grid">
+            <div class="address-column">
+                <h3>Address Information</h3>
+
+                <div class="input-group">
+                    <input type="text" id="address-input" placeholder="Enter an address" required>
+                    <button onclick="getValidate()">validate</button>
+                </div>
+
+                <div id="validation-result-container">
+                    <pre id="validation-result"></pre>
+                </div>
+
+                <p>Click on the map to select the location:</p>
+                <div id="map"></div>
+            </div>
+
+            <div class="datetime-column">
+                <h3>Date/Time and Temperature Settings</h3>
+
+                <div class="input-group">
+                    <input type="datetime-local" id="datetime" placeholder="dd/mm/aaaa --:--" required>
+                </div>
+
+                <div class="temperature-unit">
+                    <label>Temperature Unit:</label>
+                    <div class="unit-buttons">
+                        <button class="unit-btn active" data-unit="celsius">°C</button>
+                        <button class="unit-btn active" data-unit="fahrenheit">°F</button>
+                        <button class="unit-btn active" data-unit="kelvin">K</button>
+                    </div>
+                </div>
+
+                <button onclick="getWeather()" id="get-forecast-btn">Get Forecast</button>
+            </div>
+        </div>
+
+        <div id="weather-icon"></div>
+
+        <div id="temp-div"></div>
+
+        <div id="weather-info"></div>
+
+        <div id="hourly-forecast">
+            <div id="hourly-items"></div>
+        </div>
+    </div>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="/VaiChoverNaMinhaParada/BackEnd/script.js"></script>
+</body>
+
+</html>

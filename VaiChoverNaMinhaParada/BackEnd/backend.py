@@ -34,6 +34,9 @@ import shutil
 from subprocess import Popen
 from getpass import getpass
 import math
+from flask import Flask, request, jsonify, send_file
+from flask_cors import CORS
+import webbrowser
     
 homeDir = os.path.expanduser("~") + os.sep
 
@@ -59,7 +62,7 @@ prompts = ['Enter NASA Earthdata Login Username \n(or create an account at urs.e
 homeDir = os.path.expanduser("~") + os.sep
 
 with open(homeDir + '.netrc', 'w') as file:
-    file.write('machine {} login {} password {}'.format(urs, getpass(prompt=prompts[0]), getpass(prompt=prompts[1])))
+    file.write('machine {} login {} password {}'.format(urs, ' igor_mariz7', 'Igormariz2003@'))
     file.close()
 
 print('Saved .netrc to:', homeDir)
@@ -76,13 +79,8 @@ if platform.system() != "Windows":
 signin_url = "https://api.giovanni.earthdata.nasa.gov/signin"
 time_series_url = "https://api.giovanni.earthdata.nasa.gov/timeseries"
 
-lat = -18.9113
-lon = -48.2622
 time_start = "2000-09-01T03:00:00"
 time_end = "2025-09-30T21:00:00"
-data = "GLDAS_NOAH025_3H_2_1_Tair_f_inst"
-time = "06:00:00"
-date = "2025-10-06"
 
 prefix = "GLDAS_NOAH025_3H_2_1"
 variables = [
@@ -135,39 +133,36 @@ def parse_csv(resp):
     return headers, df
 #%%time
 resp = []
-resp = call_time_series(lat,lon,time_start,time_end,data)
 
-dataframes = []
+# for r in resp:
+#   headers, df = parse_csv(r)
+#   dataframes.append(df)
 
-for r in resp:
-  headers, df = parse_csv(r)
-  dataframes.append(df)
 
-columns_name = ['data_obj', 'hora_obj']
-dataframe = pd.DataFrame(columns=columns_name)
-result = []
-for df in dataframes:
-  df['Timestamp'] = pd.to_datetime(df['Timestamp'])
-  dataframe['data_obj'] = df['Timestamp'].dt.date
-  dataframe['hora_obj'] = df['Timestamp'].dt.time
+# dataframe = pd.DataFrame(columns=columns_name)
+# result = []
+# for df in dataframes:
+#   df['Timestamp'] = pd.to_datetime(df['Timestamp'])
+#   dataframe['data_obj'] = df['Timestamp'].dt.date
+#   dataframe['hora_obj'] = df['Timestamp'].dt.time
 
-  df = pd.concat([dataframe, df], axis=1)
-  df = df[df['Timestamp'].dt.hour == int(time.split(':')[0])]
-  df = df.drop('Timestamp', axis=1)
-  df = df.drop('hora_obj', axis=1)
+#   df = pd.concat([dataframe, df], axis=1)
+#   df = df[df['Timestamp'].dt.hour == int(time.split(':')[0])]
+#   df = df.drop('Timestamp', axis=1)
+#   df = df.drop('hora_obj', axis=1)
 
-  df.rename(columns={'data_obj': 'ds'}, inplace=True)
+#   df.rename(columns={'data_obj': 'ds'}, inplace=True)
 
-  segunda_coluna = df.columns[1]
-  df.rename(columns={segunda_coluna: 'y'}, inplace=True)
+#   segunda_coluna = df.columns[1]
+#   df.rename(columns={segunda_coluna: 'y'}, inplace=True)
 
-  m = Prophet()
-  m.fit(df)
+#   m = Prophet()
+#   m.fit(df)
 
-  future = m.make_future_dataframe(periods=365)
-  forecast = m.predict(future)
-  forecast = forecast[(forecast['ds'] == date)]
-  result.append(forecast['yhat'])
+#   future = m.make_future_dataframe(periods=365)
+#   forecast = m.predict(future)
+#   forecast = forecast[(forecast['ds'] == date)]
+#   result.append(forecast['yhat'])
 #print(result)
 
 def umidade_relativa(q, T, P):
@@ -210,43 +205,147 @@ def estimar_chance_chuva(T, q, P, vento, precip):
     
     return P_chuva
 # Lista com os nomes das variáveis na mesma ordem em que foram consultadas
-nomes_variaveis = [
-    "Temperatura",
-    "Umidade Específica",
-    "Precipitação de Chuva",
-    "Precipitação de Neve",
-    "Velocidade do Vento",
-    "Pressão Atmosférica"
-]
+# nomes_variaveis = [
+#     "Temperatura",
+#     "Umidade Específica",
+#     "Precipitação de Chuva",
+#     "Precipitação de Neve",
+#     "Velocidade do Vento",
+#     "Pressão Atmosférica"
+# ]
 
-# Lista com as unidades correspondentes
-unidades = [
-    "K", # Lembre-se que sugerimos a conversão para Celsius
-    "kg/kg",
-    "kg m-2 s-1",
-    "kg m-2 s-1",
-    "m/s",
-    "Pa"
-]
+# # Lista com as unidades correspondentes
+# unidades = [
+#     "K", # Lembre-se que sugerimos a conversão para Celsius
+#     "kg/kg",
+#     "kg m-2 s-1",
+#     "kg m-2 s-1",
+#     "m/s",
+#     "Pa"
+# ]
 
-# Extração e conversão dos valores para float
-T = float(result[0].iloc[0]) - 273.15   # °C
-q = float(result[1].iloc[0])            # kg/kg
-precip = float(result[2].iloc[0])       # kg m-2 s-1
-vento = float(result[4].iloc[0])        # m/s
-P = float(result[5].iloc[0]) / 100      # Pa → hPa (a função espera ~1010, não 101000)
+# # Extração e conversão dos valores para float
+# T = float(result[0].iloc[0]) - 273.15   # °C
+# q = float(result[1].iloc[0])            # kg/kg
+# precip = float(result[2].iloc[0])       # kg m-2 s-1
+# vento = float(result[4].iloc[0])        # m/s
+# P = float(result[5].iloc[0]) / 100      # Pa → hPa (a função espera ~1010, não 101000)
 
-# Exibir informações
-print(f"--- Previsão do Clima para a data: {date} ---")
-for nome, valor_serie, unidade in zip(nomes_variaveis, result, unidades):
-    print(f"{nome}: {valor_serie.iloc[0]:.6f} {unidade}")
+# # Exibir informações
+# print(f"--- Previsão do Clima para a data: {date} ---")
+# for nome, valor_serie, unidade in zip(nomes_variaveis, result, unidades):
+#     print(f"{nome}: {valor_serie.iloc[0]:.6f} {unidade}")
 
-print(f"Celsius: {T:.2f} °C")
-print(f"Fahrenheit: {(T * 1.8 + 32):.2f} °F")
+# print(f"Celsius: {T:.2f} °C")
+# print(f"Fahrenheit: {(T * 1.8 + 32):.2f} °F")
 
-# Umidade relativa
-RH = umidade_relativa(q, T, P * 100)  # se ela usa Pa
-print(f"Umidade relativa: {RH:.2f}%")
+# # Umidade relativa
+# RH = umidade_relativa(q, T, P * 100)  # se ela usa Pa
+#print(f"Umidade relativa: {RH:.2f}%")
 
 # Chance de chuva
-print(f"Chance de chuva: {estimar_chance_chuva(T, q, P, vento, precip):.2f}%")
+# print(f"Chance de chuva: {estimar_chance_chuva(T, q, P, vento, precip):.2f}%")
+
+
+def result_forecast(lat,lon,date,time):
+    resp = call_time_series(lat, lon, time_start, time_end, date)
+
+    dataframes = []
+    for r in resp:
+        headers, df = parse_csv(r)
+        dataframes.append(df)
+    columns_name = ['data_obj', 'hora_obj']
+    dataframe = pd.DataFrame(columns=columns_name)
+    result = []
+    for df in dataframes:
+        df['Timestamp'] = pd.to_datetime(df['Timestamp'])
+        dataframe['data_obj'] = df['Timestamp'].dt.date
+        dataframe['hora_obj'] = df['Timestamp'].dt.time
+
+        df = pd.concat([dataframe, df], axis=1)
+        df = df[df['Timestamp'].dt.hour == int(time.split(':')[0])]
+        df = df.drop('Timestamp', axis=1)
+        df = df.drop('hora_obj', axis=1)
+
+        df.rename(columns={'data_obj': 'ds'}, inplace=True)
+
+        segunda_coluna = df.columns[1]
+        df.rename(columns={segunda_coluna: 'y'}, inplace=True)
+
+        m = Prophet()
+        m.fit(df)
+
+        future = m.make_future_dataframe(periods=365)
+        forecast = m.predict(future)
+        forecast = forecast[(forecast['ds'] == date)]
+        result.append(forecast['yhat'])
+
+    C = float(result[0].iloc[0]) - 273.15   # °C
+    q = float(result[1].iloc[0])            # kg/kg
+    precip = float(result[2].iloc[0])    
+    neve = float(result[3].iloc[0])# kg m-2 s-1
+    vento = float(result[4].iloc[0])        # m/s
+    P = float(result[5].iloc[0]) / 100      # Pa → hPa (a função espera ~1010, não 101000)
+    K = float(result[0].iloc[0])        # °K
+    RH = umidade_relativa(q, C, P * 100)  # se ela usa Pa
+    chance_chuva = estimar_chance_chuva(C, q, P, vento, precip)
+    
+    return {
+        "Temperatura_C": C,
+        "Temperatura_F": C * 1.8 + 32,
+        "Umidade_Relativa": RH,
+        "Chance_Chuva": chance_chuva,
+        "Precipitacao_chuva": precip * 3600,
+        "Precipitacao_neve": neve * 3600,
+        "Velocidade_Vento": vento,
+        "Pressao_Atmosferica": P ,
+        "Temperatura_K": K
+    }
+
+app = Flask(__name__)
+CORS(app)
+@app.route('/')
+def serve_frontend():
+    return send_file('index.html')
+
+@app.route('/<path:filename>')
+def serve_static(filename):
+    """Rota para servir arquivos estáticos (CSS, JS, etc.)."""
+    full_path = os.path.join(os.getcwd(), filename)
+    
+    # Adicionamos verificação para segurança e 404
+    if not os.path.exists(full_path):
+        return "File not found", 404
+    return send_file(full_path)
+
+@app.route('/api/forecast', methods=['POST'])
+def forecast_api():
+    data = request.json
+    lat = data.get('latitude')
+    lon = data.get('longitude')
+    # date = data.get('date', date)
+    # time = data.get('time', time)
+    timestamp = data.get('datetime')
+    
+    if not all([lat, lon, timestamp]):
+        return jsonify({"error": "Missing required parameters"}), 400
+    
+    try:
+        dt_obj = datetime.strptime(timestamp, '%Y-%m-%dT%H:%M')
+        date = dt_obj.strftime('%Y-%m-%d')
+        time = dt_obj.hour
+        hour = (round(time / 3) * 3) % 24
+        hour_str = f"{hour:02d}:00:00"
+        result = result_forecast(lat, lon, date, hour_str)   
+
+        
+        return jsonify(result)     
+    except Exception as e:
+        print(f"API error: {e}")
+        return jsonify({"error: "f"Internal server error {str(e)}"}), 500
+    
+if __name__ == '__main__':
+    app.run(debug=True)
+    
+
+    
