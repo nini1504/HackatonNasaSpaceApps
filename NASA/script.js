@@ -1,7 +1,6 @@
 
         document.addEventListener('DOMContentLoaded', function() {
-            
-            // Adicionar eventos aos botões de unidade
+        
             const unitButtons = document.querySelectorAll('.unit-btn');
             unitButtons.forEach(button => {
                 button.addEventListener('click', function() {
@@ -183,3 +182,4 @@
                 hourlyItemsDiv.innerHTML += hourlyItemHtml;
             });
         }
+
