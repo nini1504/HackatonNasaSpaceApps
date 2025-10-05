@@ -12,17 +12,14 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    /* CORREÇÃO DE ALTURA: Usamos min-height para permitir que o conteúdo empurre o body */
     min-height: 100vh; 
     margin: 0;
-    /* Adiciona padding para o conteúdo não "comer" o topo e o rodapé */
     padding: 20px; 
     box-sizing: border-box;
 }
 
 #weather-container {
     background: rgba(255, 255, 255, 0.3);
-    /* Ajuste de largura para melhor visualização */
     width: 90%; 
     max-width: 900px; 
     padding: 20px;
@@ -33,38 +30,24 @@ body {
     text-align: center;
     box-sizing: border-box;
 }
-
-/* ------------------------------------------- */
-/* NOVAS REGRAS PARA LAYOUT LADO A LADO (FLEXBOX) */
-/* ------------------------------------------- */
-
 .form-grid {
     display: flex; /* Habilita o Flexbox */
     justify-content: space-between; /* Distribui o espaço entre as colunas */
     gap: 30px; /* Adiciona um espaço entre as colunas */
     padding: 20px 0;
-    /* Alinha o conteúdo ao topo se houver diferença de altura */
     align-items: flex-start; 
 }
 
 .address-column,
 .datetime-column {
     flex: 1; /* Faz com que ambas as colunas ocupem o mesmo espaço */
-    /* Garante que o conteúdo não seja esmagado em telas pequenas */
     min-width: 250px; 
     padding: 10px 0;
     text-align: left; /* Alinha o texto das colunas à esquerda */
 }
-
-/* Alinhamento dos títulos das colunas */
 .form-grid h3 {
     text-align: center;
 }
-
-/* ------------------------------------------- */
-/* AJUSTES NOS ELEMENTOS DE FORMULÁRIO */
-/* ------------------------------------------- */
-
 h2, h3, label, p {
     color: #fff;
     margin: 8px 0;
@@ -89,8 +72,6 @@ input, select {
     border: 1px solid white;
     background: rgba(255, 255, 255, 0.8);
 }
-
-/* Estilo para o campo de endereço + botão Validate */
 .address-column .input-group {
     display: flex;
     gap: 10px;
@@ -100,8 +81,6 @@ input, select {
     flex: 1;
     width: auto; /* Deixa o flex controlar a largura */
 }
-
-/* Estilo para os botões Validate e Get Forecast */
 button {
     background: #ffffff;
     color: #1c60b3;
@@ -127,8 +106,6 @@ button {
     font-size: 15px;
     font-weight: bold;
 }
-
-/* Alinha o botão Validate */
 .address-column .input-group button {
     width: 100px; /* Mantém largura fixa para o botão Validate */
     margin-top: 0;
@@ -155,7 +132,6 @@ button:hover {
     background-color: #f0f0f0;
     padding: 0.625rem;
     border-radius: 0.625rem;
-    /* Mantido o min-height, mas pode ser ajustado se o layout exigir mais espaço */
     min-height: 4.5rem; 
     white-space: pre-wrap;
     word-wrap: break-word;
@@ -163,7 +139,6 @@ button:hover {
     color: #333; /* Cor para o texto dentro do resultado */
 }
 
-/* Ajustes na Unidade de Temperatura */
 .temperature-unit {
     margin-top: 20px;
     text-align: center; /* Centraliza a label e os botões */
@@ -266,11 +241,6 @@ button:hover {
     display: inline-block;
     margin: 5px;
 }
-
-
-
-
-/* MEDIA QUERY para quebra de layout em telas menores */
 @media (max-width: 650px) {
     .form-grid {
         flex-direction: column; /* As colunas voltam a ficar uma embaixo da outra */
