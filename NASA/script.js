@@ -1,4 +1,3 @@
-
 document.addEventListener('DOMContentLoaded', function () {
 
     const unitButtons = document.querySelectorAll('.unit-btn');
@@ -9,9 +8,11 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    document.getElementById('search-btn').addEventListener('click', getWeather);
+    const searchBtn = document.getElementById('search-btn');
+    if (searchBtn) {
+        searchBtn.addEventListener('click', getWeather);
+    }
 });
-
 // simulação
 function simulateNASAPrediction(dateTime, tempUnit) {
 
@@ -30,7 +31,6 @@ function simulateNASAPrediction(dateTime, tempUnit) {
             condition: condition
         });
     }
-
 
     const requestHour = new Date(dateTime).getHours();
     const closestIndex = Math.floor(requestHour / 3) % 8;
@@ -134,7 +134,6 @@ function displayWeather(data, unit) {
     const weatherIcon = document.getElementById('weather-icon');
     const hourlyItemsDiv = document.getElementById('hourly-items');
 
-
     weatherInfoDiv.innerHTML = '';
     hourlyItemsDiv.innerHTML = '';
     tempDivInfo.innerHTML = '';
@@ -172,71 +171,87 @@ function displayHourlyForecast(hourlyData, unit) {
         const icon = getWeatherIcon(item.condition);
 
         const hourlyItemHtml = `
-                    <div class="hourly-item">
-                        <div class="time">${time}</div>
-                        <div class="icon">${icon}</div>
-                        <div class="temp">${temperature}${symbol}</div>
-                    </div>
-                `;
+                        <div class="hourly-item">
+                            <div class="time">${time}</div>
+                            <div class="icon">${icon}</div>
+                            <div class="temp">${temperature}${symbol}</div>
+                        </div>
+                    `;
 
         hourlyItemsDiv.innerHTML += hourlyItemHtml;
     });
 }
 
+const initialCoords = [-14.235, -51.925];
+const initialZoom = 4;
+
+const validationResultElement = document.getElementById('validation-result');
+const addressInputElement = document.getElementById('address-input');
+
+const map = L.map('map').setView(initialCoords, initialZoom);
+let marker;
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+}).addTo(map);
+
 async function getValidate() {
-    const addressLine = document.getElementById('address').value;
-    const validationResultElement = document.getElementById('validation-result');
+    const addressLine = addressInputElement.value;
 
     if (!addressLine) {
-        alert('Please insert an address');
+        alert('Please enter an address!');
         return;
     }
 
     validationResultElement.textContent = 'Validating...';
 
-    const apiKey = "AIzaSyCldaDjKd5af0w6f3gGJ_Cy8ILMla_5um4"; 
+    const apiKey = "AIzaSyBnXhTS2l6_GLpvDWZ0e73rXPtOBpku1Ew";
     const apiUrl = `https://addressvalidation.googleapis.com/v1:validateAddress?key=${apiKey}`;
-
-    const requestBody = {
-        "address": {
-            "addressLines": [addressLine]
-        }
-    };
+    
+    const requestBody = { "address": { "addressLines": [addressLine] } };
 
     try {
-        
         const response = await fetch(apiUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(requestBody)
         });
-
-        
         const data = await response.json();
 
-        
-        if (data.result && data.result.geocode && data.result.geocode.location) {
+        if (data.result?.geocode?.location) {
             const location = data.result.geocode.location;
-            const nome = data.result.address.formattedAddress;
+            const name = data.result.address.formattedAddress;
             const latitude = location.latitude;
             const longitude = location.longitude;
             
-            // defining global variables for later use 
-            window.address = nome;
-            window.latitude = latitude;
-            window.longitude = longitude;
-            
-           
-            validationResultElement.textContent = `Local: ${nome}\n`;
-        
+            updateLocationInfo(latitude, longitude, name);
+
         } else if (data.error) {
-            
             validationResultElement.textContent = `Error: ${data.error.message}`;
         } else {
-            validationResultElement.textContent = "Unable to find address. Try to include more information about the location, such as number, street, neighborhood, city, state and country.";
+            validationResultElement.textContent = "Could not find the address. Please try to be more specific.";
         }
-
     } catch (error) {
-        validationResultElement.textContent = 'An error occurred during the request:\n' + error;
+        validationResultElement.textContent = 'An error occurred during the request: ' + error;
     }
+}
+
+map.on('click', (event) => {
+    const { lat, lng } = event.latlng;
+    
+    updateLocationInfo(lat, lng, "Location selected on map");
+});
+
+function updateLocationInfo(lat, lng, displayName = "") {
+    const zoomLevel = 17;
+    
+    map.setView([lat, lng], zoomLevel);
+
+    if (!marker) {
+        marker = L.marker([lat, lng]).addTo(map);
+    } else {
+        marker.setLatLng([lat, lng]);
+    }
+    
+    validationResultElement.textContent = `Location: ${displayName}\nLatitude: ${lat.toFixed(6)}\nLongitude: ${lng.toFixed(6)}`;
 }
