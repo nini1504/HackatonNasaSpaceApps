@@ -83,52 +83,51 @@ function getWeatherCondition(tempCelsius, rainChance) {
     const hour = new Date().getHours();
     const isNight = hour >= 18 || hour < 6;
 
-    if (rainChance > 60) return 'stormy';
-    if (rainChance > 30) return 'rainy';
+    if (rainChance > 90) return 'stormy';
+    if (rainChance > 70) return 'rainy';
     
-    if (tempCelsius > 30) return 'sunny';
-    if (tempCelsius > 25) return 'partly-cloudy';
+    if (tempCelsius > 25) return 'sunny';
+    if (tempCelsius > 15) return 'partly-cloudy';
     
-    if (isNight && tempCelsius > 15) return 'clear-night';
+    if (isNight && tempCelsius > 20) return 'clear-night';
 
     if (tempCelsius > 10) return 'cloudy';
-    if (tempCelsius > 5) return 'rainy';
     if (tempCelsius <= 0) return 'snowy';
     return 'partly-cloudy';
 }
 
 // NOVA FUNÇÃO: Simulação horária baseada na temperatura real (para preencher o gráfico)
-function generateHourlySimulatedData(baseTempCelsius, tempUnit) {
-    const hourlyData = [];
-    const now = new Date();
-    // Encontra o próximo múltiplo de 3 para começar a simulação (0, 3, 6, 9, etc.)
-    const currentHourMultiple = Math.floor(now.getHours() / 3) * 3;
+// function generateHourlySimulatedData(baseTempCelsius, tempUnit) {
+//     const hourlyData = [];
+//     const now = new Date();
+//     // Encontra o próximo múltiplo de 3 para começar a simulação (0, 3, 6, 9, etc.)
+//     const currentHourMultiple = Math.floor(now.getHours() / 3) * 3;
     
-    for (let i = 0; i < 8; i++) {
-        const hour = (currentHourMultiple + i * 3) % 24;
+//     for (let i = 0; i < 8; i++) {
+//         const hour = (currentHourMultiple + i * 3) % 24;
         
-        // Variação sinusoidal para simular o ciclo dia/noite
-        const tempVariation = Math.sin(i * Math.PI / 4) * 5; 
-        // Pequena variação para mostrar mudança
-        const tempCelsius = baseTempCelsius + tempVariation - 3; 
+//         // Variação sinusoidal para simular o ciclo dia/noite
+//         const tempVariation = Math.sin(i * Math.PI / 4) * 5; 
+//         // Pequena variação para mostrar mudança
+//         const tempCelsius = baseTempCelsius + tempVariation - 3; 
 
-        // Lógica de condição simples para o forecast horário simulado (rainChance=0)
-        const condition = getWeatherCondition(tempCelsius, 0); 
+//         // Lógica de condição simples para o forecast horário simulado (rainChance=0)
+//         const condition = getWeatherCondition(tempCelsius, 0); 
 
-        hourlyData.push({
-            time: hour,
-            tempCelsius: Math.round(tempCelsius * 10) / 10,
-            condition: condition
-        });
-    }
+//         hourlyData.push({
+//             time: hour,
+//             tempCelsius: Math.round(tempCelsius * 10) / 10,
+//             condition: condition
+//         });
+//     }
     
-    // Converte para a unidade solicitada
-    return hourlyData.map(item => ({
-        time: item.time,
-        temperature: convertTemperature(item.tempCelsius, tempUnit),
-        condition: item.condition
-    }));
-}
+//     // Converte para a unidade solicitada
+//     return hourlyData.map(item => ({
+//         time: item.time,
+//         temperature: convertTemperature(item.tempCelsius, tempUnit),
+//         condition: item.condition
+//     }));
+// }
 
 
 // IMPLEMENTAÇÃO DA FUNÇÃO getWeather() - CHAMA A API
@@ -157,10 +156,9 @@ async function getWeather() {
     getForecastBtn.disabled = true;
     
     // Limpar resultados
-    document.getElementById('temp-div').innerHTML = '';
+   // document.getElementById('temp-div').innerHTML = '';
     document.getElementById('weather-info').innerHTML = 'Fetching NASA data...';
-    document.getElementById('weather-icon').innerHTML = '';
-    document.getElementById('hourly-items').innerHTML = '';
+    //document.getElementById('weather-icon').innerHTML = '';
 
 
     try {
@@ -190,8 +188,7 @@ async function getWeather() {
         const rainChance = data.Chance_Chuva;
         
         // Determinar a condição e gerar a simulação horária
-        const currentCondition = getWeatherCondition(currentTempCelsius, rainChance);
-        const hourlySimulatedData = generateHourlySimulatedData(currentTempCelsius, tempUnit); 
+        const currentCondition = getWeatherCondition(currentTempCelsius, rainChance); 
         
         const weatherData = {
             current: {
@@ -199,7 +196,6 @@ async function getWeather() {
                 temperature: convertTemperature(currentTempCelsius, tempUnit), 
                 condition: currentCondition
             },
-            hourly: hourlySimulatedData 
         };
         
         displayWeather(weatherData, tempUnit);
@@ -207,8 +203,14 @@ async function getWeather() {
         // Adiciona informações extras do backend na área de descrição
         document.getElementById('weather-info').innerHTML += 
             `<p>Relative Humidity: ${data.Umidade_Relativa}%</p>
-             <p>Rain Chance: ${data.Chance_Chuva.toFixed(2)}%</p>
-             <p>Wind Speed: ${data.Velocidade_Vento.toFixed(2)} m/s</p>`;
+             <p>Rain Chance: ${data.Chance_Chuva}%</p>
+             <p>Temperatura (C): ${data.Temperatura_C} °C</p>
+             <p>Wind Speed: ${data.Velocidade_Vento} m/s</p>
+             <p>Precipitation: ${data.Precipitacao_chuva} mm</p>
+             <p>Snow Precipitation: ${data.Precipitacao_neve} mm</p>
+             <p>Pressure: ${data.Pressao_Atmosferica} hPa</p>`
+            
+             
 
 
     } catch (error) {
@@ -227,11 +229,11 @@ function displayWeather(data, unit) {
     const tempDivInfo = document.getElementById('temp-div');
     const weatherInfoDiv = document.getElementById('weather-info');
     const weatherIcon = document.getElementById('weather-icon');
-    const hourlyItemsDiv = document.getElementById('hourly-items');
+    //const hourlyItemsDiv = document.getElementById('hourly-items');
 
 
     weatherInfoDiv.innerHTML = '';
-    hourlyItemsDiv.innerHTML = '';
+    //hourlyItemsDiv.innerHTML = '';
     tempDivInfo.innerHTML = '';
     weatherIcon.innerHTML = '';
 
@@ -255,32 +257,31 @@ function displayWeather(data, unit) {
 
     weatherIcon.innerHTML = `<div class="weather-emoji">${icon}</div>`;
 
-    displayHourlyForecast(data.hourly, unit);
 }
 
-function displayHourlyForecast(hourlyData, unit) {
-    const hourlyItemsDiv = document.getElementById('hourly-items');
-    const symbol = getTemperatureSymbol(unit);
+// function displayHourlyForecast(hourlyData, unit) {
+//     const hourlyItemsDiv = document.getElementById('hourly-items');
+//     const symbol = getTemperatureSymbol(unit);
     
-    // Limpa antes de adicionar o novo forecast
-    hourlyItemsDiv.innerHTML = ''; 
+//     // Limpa antes de adicionar o novo forecast
+//     //hourlyItemsDiv.innerHTML = ''; 
 
-    hourlyData.forEach(item => {
-        const time = `${item.time}:00`;
-        const temperature = item.temperature;
-        const icon = getWeatherIcon(item.condition);
+//     hourlyData.forEach(item => {
+//         const time = `${item.time}:00`;
+//         const temperature = item.temperature;
+//         const icon = getWeatherIcon(item.condition);
 
-        const hourlyItemHtml = `
-                        <div class="hourly-item">
-                            <div class="time">${time}</div>
-                            <div class="icon">${icon}</div>
-                            <div class="temp">${temperature}${symbol}</div>
-                        </div>
-                    `;
+//         const hourlyItemHtml = `
+//                         <div class="hourly-item">
+//                             <div class="time">${time}</div>
+//                             <div class="icon">${icon}</div>
+//                             <div class="temp">${temperature}${symbol}</div>
+//                         </div>
+//                     `;
 
-        hourlyItemsDiv.innerHTML += hourlyItemHtml;
-    });
-}
+//         hourlyItemsDiv.innerHTML += hourlyItemHtml;
+//     });
+// }
 
 
 // --> 3. LÓGICA DO MAPA E VALIDAÇÃO DE ENDEREÇO (MODIFICADA PARA SALVAR COORDENADAS)

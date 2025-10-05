@@ -115,6 +115,19 @@ button {
     font-weight: bold;
 }
 
+#get-forecast-btn {
+    background: #108a16;
+    color: #ffffff;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+     width: 100%; 
+    margin-top: 30px; 
+    font-size: 15px;
+    font-weight: bold;
+}
+
 /* Alinha o botão Validate */
 .address-column .input-group button {
     width: 100px; /* Mantém largura fixa para o botão Validate */
@@ -123,7 +136,13 @@ button {
 
 
 button:hover {
-    background: #4e9651;
+    background: #07d82a;
+    color: #ffffff;
+    font-weight: bold;
+}
+
+#get-forecast-btn:hover {
+    background: #07d82a;
     color: #ffffff;
     font-weight: bold;
 }
@@ -163,7 +182,7 @@ button:hover {
 }
 
 .btn-principal{
-    background: #15c41e;
+    background: #0b9412;
     color: #ffffff;
     font-weight: bold;
 }
@@ -175,7 +194,7 @@ button:hover {
 }
 
 .unit-btn.active {
-    background: #15c41e;
+    background: #108a16;
     color: #ffffff;
     border-color: white;
     font-weight: bold;
@@ -263,4 +282,10 @@ button:hover {
         min-width: 100%;
         margin-bottom: 20px;
     }
+}
+
+#weather{
+    align-items: center;
+    justify-content: center;
+    text-align: center;
 }

@@ -19,7 +19,7 @@
 
                 <div class="input-group">
                     <input type="text" id="address-input" placeholder="Enter an address" required>
-                    <button onclick="getValidate()" class="btn-principal">Find</button>
+                    <button onclick="getValidate()">Find</button>
                 </div>
 
                 <div id="validation-result-container">
@@ -40,24 +40,20 @@
                 <div class="temperature-unit">
                     <label>Temperature Unit:</label>
                     <div class="unit-buttons">
-                        <button class="unit-btn " data-unit="celsius">°C</button>
-                        <button class="unit-btn " data-unit="fahrenheit">°F</button>
-                        <button class="unit-btn " data-unit="kelvin">K</button>
+                        <button class="unit-btn" data-unit="celsius">°C</button>
+                        <button class="unit-btn" data-unit="fahrenheit">°F</button>
+                        <button class="unit-btn" data-unit="kelvin">K</button>
                     </div>
                 </div>
 
-                <button onclick="getWeather()" id="get-forecast-btn" class="btn-principal">Get Forecast</button>
+                <button onclick="getWeather()" id="get-forecast-btn">Get Forecast</button>
+                <div id="weather-icon"></div>
+                <div id="weather">
+                    <p>Oie!</p>
+                    <div id="temp-div"></div>
+                    <div id="weather-info"></div>
+                </div>
             </div>
-        </div>
-
-        <div id="weather-icon"></div>
-
-        <div id="temp-div"></div>
-
-        <div id="weather-info"></div>
-
-        <div id="hourly-forecast">
-            <div id="hourly-items"></div>
         </div>
     </div>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>

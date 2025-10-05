@@ -62,7 +62,7 @@ prompts = ['Enter NASA Earthdata Login Username \n(or create an account at urs.e
 homeDir = os.path.expanduser("~") + os.sep
 
 with open(homeDir + '.netrc', 'w') as file:
-    file.write('machine {} login {} password {}'.format(urs, ' igor_mariz7', 'Igormariz2003@'))
+    file.write('machine {} login {} password {}'.format(urs, 'rafaxavier', 'Rafael_Xavier1005@'))
     file.close()
 
 print('Saved .netrc to:', homeDir)
@@ -71,6 +71,11 @@ print('Saved .netrc to:', homeDir)
 
 # igor_mariz7
 # Igormariz2003@
+
+# rafaxavier
+# Rafael_Xavier1005@
+
+
 # Set appropriate permissions for Linux/macOS
 if platform.system() != "Windows":
     Popen('chmod og-rw ~/.netrc', shell=True)
@@ -275,21 +280,28 @@ def result_forecast(lat,lon,date,time):
         m = Prophet()
         m.fit(df)
 
-        future = m.make_future_dataframe(periods=365)
+        future = m.make_future_dataframe(periods=800)
         forecast = m.predict(future)
         forecast = forecast[(forecast['ds'] == date)]
         result.append(forecast['yhat'])
 
-    C = float(result[0].iloc[0]) - 273.15   # °C
-    q = float(result[1].iloc[0])            # kg/kg
-    precip = float(result[2].iloc[0])    
-    neve = float(result[3].iloc[0])# kg m-2 s-1
-    vento = float(result[4].iloc[0])        # m/s
-    P = float(result[5].iloc[0]) / 100      # Pa → hPa (a função espera ~1010, não 101000)
-    K = float(result[0].iloc[0])        # °K
-    RH = umidade_relativa(q, C, P * 100)  # se ela usa Pa
+    C = (float(result[0].iloc[0]) - 273.15) 
+    C = round(C, 2) # °C
+    q = float(result[1].iloc[0])  # kg/kg
+    precip = float(result[2].iloc[0])
+    precip = round(precip, 2)      # kg m-2 s-1    
+    neve = float(result[3].iloc[0])
+    neve = round(neve, 2)            # kg m-2 s-1
+    vento = float(result[4].iloc[0])  
+    vento = round(vento, 2)          # m/s
+    P = float(result[5].iloc[0]) / 100
+    P = round(P, 2)                   # Pa → hPa (a função espera ~1010, não 101000)
+    K = float(result[0].iloc[0])      
+    K = round(K, 2)                   # °K
+    RH = umidade_relativa(q, C, P * 100) 
+    RH = round(RH, 2) 
     chance_chuva = estimar_chance_chuva(C, q, P, vento, precip)
-    
+    chance_chuva = round(chance_chuva, 2)
     return {
         "Temperatura_C": C,
         "Temperatura_F": C * 1.8 + 32,
