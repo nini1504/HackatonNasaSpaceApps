@@ -16,9 +16,11 @@ from getpass import getpass
 import math
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
-    
+
+# Create and save the files in user home directory
 homeDir = os.path.expanduser("~") + os.sep
 
+# File .dodrc and .urs_cookies
 with open(homeDir + '.urs_cookies', 'w') as file:
     file.write('')
     file.close()
@@ -38,6 +40,7 @@ urs = 'urs.earthdata.nasa.gov'    # Earthdata URL to call for authentication
 prompts = ['Enter NASA Earthdata Login Username \n(or create an account at urs.earthdata.nasa.gov): ',
            'Enter NASA Earthdata Login Password: ']
 
+# File .netrc
 homeDir = os.path.expanduser("~") + os.sep
 
 with open(homeDir + '.netrc', 'w') as file:
@@ -45,24 +48,18 @@ with open(homeDir + '.netrc', 'w') as file:
     file.close()
 
 print('Saved .netrc to:', homeDir)
-# nini1504
-# Nicolly1504@
-
-# igor_mariz7
-# Igormariz2003@
-
-# rafaxavier
-# Rafael_Xavier1005@
-
 
 if platform.system() != "Windows":
     Popen('chmod og-rw ~/.netrc', shell=True)
+
+# URLs and parameters for data requests
 signin_url = "https://api.giovanni.earthdata.nasa.gov/signin"
 time_series_url = "https://api.giovanni.earthdata.nasa.gov/timeseries"
 
 time_start = "2000-09-01T03:00:00"
 time_end = "2025-09-30T21:00:00"
 
+# Variables of GES DISC select for us
 prefix = "GLDAS_NOAH025_3H_2_1"
 variables = [
     "_Tair_f_inst",     # Temperatura
@@ -73,10 +70,12 @@ variables = [
     "_Psurf_f_inst"     # Pressão
 ]
 
+# Get authentication token
 token = requests.get(signin_url, auth=HTTPBasicAuth(netrc.netrc().hosts['urs.earthdata.nasa.gov'][0],
                                                     netrc.netrc().hosts['urs.earthdata.nasa.gov'][2]),
                      allow_redirects=True).text.replace('"','')
 
+# Function to request/collect data from GES DISC
 def call_time_series(lat,lon,time_start,time_end,data):
   responses = []
   for variable in variables:
@@ -90,6 +89,7 @@ def call_time_series(lat,lon,time_start,time_end,data):
     responses.append(response.text)
   return responses
 
+# Function to parse CSV response from GES DISC
 def parse_csv(resp):
     with io.StringIO(resp) as f:
         headers = {}
@@ -108,9 +108,11 @@ def parse_csv(resp):
             converters={"Timestamp":pd.Timestamp}
         )
     return headers, df
-#%%time
+
+# Array to store the responses
 resp = []
 
+# Function to convert specific humidity to relative humidity
 def umidade_relativa(q, T, P):
     """
     Converte umidade específica (kg/kg) em umidade relativa (%)
@@ -125,6 +127,7 @@ def umidade_relativa(q, T, P):
     RH = (e / e_s) * 100
     return RH
 
+# Function to estimate chance of rain with others atmospheric variables
 def estimar_chance_chuva(T, q, P, vento, precip):
     """
     Estima a chance de chuva (%) com base em variáveis atmosféricas.
@@ -146,39 +149,48 @@ def estimar_chance_chuva(T, q, P, vento, precip):
     
     return P_chuva
 
+# Function to get the array of forecast result
 def result_forecast(lat,lon,date,time):
     resp = call_time_series(lat, lon, time_start, time_end, date)
 
+    # Array to store the all prediction of all variables
     dataframes = []
+    # Loop to convert all responses to dataframe
     for r in resp:
         headers, df = parse_csv(r)
         dataframes.append(df)
+    # DataFrame auxiliar to extract date and time 
     columns_name = ['data_obj', 'hora_obj']
     dataframe = pd.DataFrame(columns=columns_name)
+    
     result = []
     for df in dataframes:
         df['Timestamp'] = pd.to_datetime(df['Timestamp'])
         dataframe['data_obj'] = df['Timestamp'].dt.date
         dataframe['hora_obj'] = df['Timestamp'].dt.time
 
+        # Merge the dataframes to filter by date and hour
         df = pd.concat([dataframe, df], axis=1)
         df = df[df['Timestamp'].dt.hour == int(time.split(':')[0])]
         df = df.drop('Timestamp', axis=1)
         df = df.drop('hora_obj', axis=1)
 
+        # Adjust the dataframe to fit the Prophet model
         df.rename(columns={'data_obj': 'ds'}, inplace=True)
-
         segunda_coluna = df.columns[1]
         df.rename(columns={segunda_coluna: 'y'}, inplace=True)
 
+        # Fit the Prophet model and make the forecast
         m = Prophet()
         m.fit(df)
-
+        # Create a dataframe to hold predictions
         future = m.make_future_dataframe(periods=800)
         forecast = m.predict(future)
+        # Filter the forecast for the specific date
         forecast = forecast[(forecast['ds'] == date)]
         result.append(forecast['yhat'])
 
+    # Extract the forecasted values for each variable
     C = (float(result[0].iloc[0]) - 273.15) 
     C = round(C, 2) # °C
     q = float(result[1].iloc[0])  # kg/kg
@@ -196,6 +208,7 @@ def result_forecast(lat,lon,date,time):
     RH = round(RH, 2) 
     chance_chuva = estimar_chance_chuva(C, q, P, vento, precip)
     chance_chuva = round(chance_chuva, 2)
+    # Return the results as a dictionary
     return {
         "Temperatura_C": C,
         "Temperatura_F": C * 1.8 + 32,
@@ -208,11 +221,14 @@ def result_forecast(lat,lon,date,time):
         "Temperatura_K": K
     }
 
+# Flask app to serve the frontend and handle API requests (Python´s framework web)
 app = Flask(__name__)
 CORS(app)
+
+
 @app.route('/')
 def serve_frontend():
-    return send_file('index.html')
+    return send_file('/HackathonNasaSpaceApps/index.html')
 
 @app.route('/<path:filename>')
 def serve_static(filename):
