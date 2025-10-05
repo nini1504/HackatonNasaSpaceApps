@@ -134,7 +134,6 @@ async function getWeather() {
         document.getElementById('weather-info').innerHTML += 
             `<p>Relative Humidity: ${data.Umidade_Relativa}%</p>
              <p>Rain Chance: ${data.Chance_Chuva}%</p>
-             <p>Temperatura (C): ${data.Temperatura_C} °C</p>
              <p>Wind Speed: ${data.Velocidade_Vento} m/s</p>
              <p>Precipitation: ${data.Precipitacao_chuva} mm</p>
              <p>Snow Precipitation: ${data.Precipitacao_neve} mm</p>
