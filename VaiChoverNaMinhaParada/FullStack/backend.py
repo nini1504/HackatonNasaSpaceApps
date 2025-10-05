@@ -14,7 +14,7 @@ import shutil
 from subprocess import Popen
 from getpass import getpass
 import math
-from flask import Flask, request, jsonify, send_file
+from flask import Flask, request, jsonify, send_file, send_from_directory
 from flask_cors import CORS
 
 # Create and save the files in user home directory
@@ -226,10 +226,12 @@ def result_forecast(lat,lon,date,time):
 app = Flask(__name__)
 CORS(app)
 
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+
 # Route to serve the main HTML file
 @app.route('/')
 def serve_frontend():
-    return send_file('/HackathonNasaSpaceApps/index.html')
+    return send_from_directory(project_root,'index.html')
 
 # Route to serve static files (CSS, JS, etc.)
 @app.route('/<path:filename>')
@@ -275,4 +277,4 @@ def forecast_api():
     
 # Run the Flask app
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)
