@@ -19,7 +19,7 @@
 
                 <div class="input-group">
                     <input type="text" id="address-input" placeholder="Enter an address" required>
-                    <button onclick="getValidate()">validate</button>
+                    <button onclick="getValidate()" class="btn-principal">validate</button>
                 </div>
 
                 <div id="validation-result-container">
@@ -40,13 +40,13 @@
                 <div class="temperature-unit">
                     <label>Temperature Unit:</label>
                     <div class="unit-buttons">
-                        <button class="unit-btn active" data-unit="celsius">°C</button>
-                        <button class="unit-btn active" data-unit="fahrenheit">°F</button>
-                        <button class="unit-btn active" data-unit="kelvin">K</button>
+                        <button class="unit-btn " data-unit="celsius">°C</button>
+                        <button class="unit-btn " data-unit="fahrenheit">°F</button>
+                        <button class="unit-btn " data-unit="kelvin">K</button>
                     </div>
                 </div>
 
-                <button onclick="getWeather()" id="get-forecast-btn">Get Forecast</button>
+                <button onclick="getWeather()" id="get-forecast-btn" class="btn-principal">Get Forecast</button>
             </div>
         </div>
 
