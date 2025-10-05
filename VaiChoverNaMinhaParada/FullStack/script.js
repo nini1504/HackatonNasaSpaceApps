@@ -1,7 +1,6 @@
-
+// Config buttons of units temperature 
 document.addEventListener('DOMContentLoaded', function () {
 
-    // Configuração dos botões de unidade de temperatura
     const unitButtons = document.querySelectorAll('.unit-btn');
     unitButtons.forEach(button => {
         button.addEventListener('click', function () {
@@ -11,6 +10,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 
+// Convert temperature between Celsius, Fahrenheit, and Kelvin
 function convertTemperature(celsius, unit) {
     switch (unit) {
         case 'fahrenheit':
@@ -22,6 +22,7 @@ function convertTemperature(celsius, unit) {
     }
 }
 
+// Get the symbol for the temperature unit
 function getTemperatureSymbol(unit) {
     switch (unit) {
         case 'fahrenheit':
@@ -33,6 +34,7 @@ function getTemperatureSymbol(unit) {
     }
 }
 
+// Get weather icon based on condition climatic
 function getWeatherIcon(condition) {
     const icons = {
         'sunny': '☀️',
@@ -46,6 +48,7 @@ function getWeatherIcon(condition) {
     return icons[condition];
 }
 
+// Get weather description based on condition climatic
 function getWeatherDescription(condition) {
     const descriptions = {
         'sunny': 'Sunny',
@@ -58,6 +61,8 @@ function getWeatherDescription(condition) {
     };
     return descriptions[condition] || 'Unknown';
 }
+
+// Determine weather condition based on temperature and rain chance
 function getWeatherCondition(tempCelsius, rainChance) {
     // Lógica para dia/noite simples (apenas para exibição do ícone)
     const hour = new Date().getHours();
@@ -75,15 +80,18 @@ function getWeatherCondition(tempCelsius, rainChance) {
     if (tempCelsius <= 0) return 'snowy';
     return 'partly-cloudy';
 }
+
+// Fetch weather data from the backend API
 async function getWeather() {
     const dateTime = document.getElementById('datetime').value;
     const activeUnitBtn = document.querySelector('.unit-btn.active');
     const tempUnit = activeUnitBtn ? activeUnitBtn.getAttribute('data-unit') : 'celsius';
-    
-    // Obter coordenadas globais salvas pela função updateLocationInfo
+
+    // Get global coordinates saved by the updateLocationInfo function
     const lat = window.selectedLatitude;
     const lon = window.selectedLongitude;
 
+    // Validate inputs
     if (!lat || !lon) {
         alert('Please select a location on the map or validate an address first.');
         return;
@@ -94,15 +102,18 @@ async function getWeather() {
         return;
     }
 
+    // Show loading state
     const getForecastBtn = document.getElementById('get-forecast-btn');
     const originalBtnText = getForecastBtn.textContent;
     getForecastBtn.textContent = 'Loading...';
     getForecastBtn.disabled = true;
     document.getElementById('weather-info').innerHTML = 'Fetching NASA data...';
 
+    // Call the backend API
     try {
         const apiUrl = 'http://127.0.0.1:5000/api/forecast'; 
         
+        // Prepare the request payload
         const response = await fetch(apiUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -115,6 +126,7 @@ async function getWeather() {
 
         const data = await response.json();
 
+        // Handle errors from the API
         if (!response.ok || data.error) {
             alert(`Error fetching forecast: ${data.error || response.statusText}`);
             document.getElementById('weather-info').innerHTML = `Error: ${data.error || 'Server error'}`;
@@ -124,12 +136,15 @@ async function getWeather() {
         const rainChance = data.Chance_Chuva;
         const currentCondition = getWeatherCondition(currentTempCelsius, rainChance); 
         
+        // Prepare data for display
         const weatherData = {
             current: {
                 temperature: convertTemperature(currentTempCelsius, tempUnit), 
                 condition: currentCondition
             },
-        };        
+        };      
+        
+        // Display weather information to show to user
         displayWeather(weatherData, tempUnit);
         document.getElementById('weather-info').innerHTML += 
             `<p>Relative Humidity: ${data.Umidade_Relativa}%</p>
@@ -147,7 +162,7 @@ async function getWeather() {
     }
 }
 
-
+// Display weather information on the webpage
 function displayWeather(data, unit) {
     const tempDivInfo = document.getElementById('temp-div');
     const weatherInfoDiv = document.getElementById('weather-info');
@@ -157,12 +172,14 @@ function displayWeather(data, unit) {
     tempDivInfo.innerHTML = '';
     weatherIcon.innerHTML = '';
 
+    // Extract data
     const temperature = data.current.temperature;
     const condition = data.current.condition;
     const symbol = getTemperatureSymbol(unit);
     const icon = getWeatherIcon(condition);
     const description = getWeatherDescription(condition);
 
+    // Create HTML elements
     const temperatureHTML = `
         <p>${temperature}${symbol}</p>
     `;
@@ -171,6 +188,7 @@ function displayWeather(data, unit) {
         <p>${description}</p>
     `;
 
+    // Update the DOM
     tempDivInfo.innerHTML = temperatureHTML;
     weatherInfoDiv.innerHTML = weatherHtml; 
 
@@ -178,6 +196,7 @@ function displayWeather(data, unit) {
 
 }
 
+// Map initialization and address validation
 const initialCoords = [-14.235, -51.925];
 const initialZoom = 4;
 window.selectedLatitude = null;
@@ -189,10 +208,12 @@ const addressInputElement = document.getElementById('address-input');
 const map = L.map('map').setView(initialCoords, initialZoom);
 let marker;
 
+// Add OpenStreetMap tile layer
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 }).addTo(map);
 
+// Validate address using Google Address Validation API
 async function getValidate() {
     const addressLine = addressInputElement.value;
 
@@ -201,11 +222,13 @@ async function getValidate() {
         return;
     }
 
+    // Show loading state
     validationResultElement.textContent = 'Validating...';
     const apiKey = "AIzaSyBnXhTS2l6_GLpvDWZ0e73rXPtOBpku1Ew"; 
     const apiUrl = `https://addressvalidation.googleapis.com/v1:validateAddress?key=${apiKey}`;    
     const requestBody = { "address": { "addressLines": [addressLine] } };
 
+    // Call the Google Address Validation API
     try {
         const response = await fetch(apiUrl, {
             method: 'POST',
@@ -214,6 +237,7 @@ async function getValidate() {
         });
         const data = await response.json();
 
+        // Handle the response
         if (data.result?.geocode?.location) {
             const location = data.result.geocode.location;
             const name = data.result.address.formattedAddress;
@@ -232,12 +256,14 @@ async function getValidate() {
     }
 }
 
+// Event listener for the Validate Address button
 map.on('click', (event) => {
     const { lat, lng } = event.latlng;
     
     updateLocationInfo(lat, lng, "Location selected on map");
 });
 
+// Update map and marker based on selected location
 function updateLocationInfo(lat, lng, displayName = "") {
     const zoomLevel = 17;
     
@@ -251,5 +277,6 @@ function updateLocationInfo(lat, lng, displayName = "") {
     window.selectedLatitude = lat; 
     window.selectedLongitude = lng;
     
+    // Update validation result display
     validationResultElement.textContent = `Location: ${displayName}\nLatitude: ${lat.toFixed(6)}\nLongitude: ${lng.toFixed(6)}`;
 }
