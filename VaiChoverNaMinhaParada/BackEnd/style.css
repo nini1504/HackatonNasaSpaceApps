@@ -7,7 +7,7 @@
 }
 
 body {
-    background: #8C52FF;
+    background: #1c60b3;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     display: flex;
     align-items: center;
@@ -103,8 +103,8 @@ input, select {
 
 /* Estilo para os botões Validate e Get Forecast */
 button {
-    background: #28ad2c;
-    color: white;
+    background: #ffffff;
+    color: #1c60b3;
     padding: 10px 15px;
     border: none;
     border-radius: 10px;
@@ -112,6 +112,7 @@ button {
      width: 100%; 
     margin-top: 30px; 
     font-size: 15px;
+    font-weight: bold;
 }
 
 /* Alinha o botão Validate */
@@ -122,10 +123,11 @@ button {
 
 
 button:hover {
-    background: #4b884e;
+    background: #4e9651;
+    color: #ffffff;
+    font-weight: bold;
 }
 
-/* Ajuste para o container do resultado de validação */
 #validation-result-container {
     margin-top: 10px;
 }
@@ -160,6 +162,12 @@ button:hover {
     gap: 10px;
 }
 
+.btn-principal{
+    background: #15c41e;
+    color: #ffffff;
+    font-weight: bold;
+}
+
 .unit-btn {
     flex: 1; /* Faz os botões ocuparem o mesmo espaço */
     width: auto;
@@ -167,13 +175,11 @@ button:hover {
 }
 
 .unit-btn.active {
-    background: rgba(255, 255, 255, 0.8);
-    color: #8C52FF;
+    background: #15c41e;
+    color: #ffffff;
     border-color: white;
     font-weight: bold;
 }
-
-/* Demais estilos (mantidos) */
 
 #temp-div p {
     font-size: 60px;
