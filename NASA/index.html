@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NASA Weather Forecast</title>
+    <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+    <div id="weather-container">
+        <h2>NASA Weather Forecast</h2>
+       
+        <div class="input-group">
+            
+            <input type="text" id="city" placeholder="Enter city name" required>
+        </div>
+        
+        <div class="input-group">
+        
+            <input type="datetime-local" id="datetime" required>
+        </div>
+        
+      <div class="temperature-unit">
+            <label>Temperature Unit:</label>
+            <div class="unit-buttons">
+                <button class="unit-btn active" data-unit="celsius">°C</button>
+                <button class="unit-btn" data-unit="fahrenheit">°F</button>
+                <button class="unit-btn" data-unit="kelvin">K</button>
+            </div>
+        </div>
+        
+        <button onclick="getWeather()">Get Forecast</button>
+
+        <div id="weather-icon"></div>
+
+        <div id="temp-div"></div>
+
+        <div id="weather-info"></div>
+
+        <div id="hourly-forecast">
+            <div id="hourly-items"></div>
+        </div>
+    </div>
+    <script src="./script.js"></script> 
+</body>
+</html>
