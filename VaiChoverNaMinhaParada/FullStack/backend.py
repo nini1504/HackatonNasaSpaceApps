@@ -44,7 +44,7 @@ prompts = ['Enter NASA Earthdata Login Username \n(or create an account at urs.e
 homeDir = os.path.expanduser("~") + os.sep
 
 with open(homeDir + '.netrc', 'w') as file:
-    file.write('machine {} login {} password {}'.format(urs, 'rafaxavier', 'Rafael_Xavier1005@'))
+    file.write('machine {} login {} password {}'.format(urs, 'nsp2025', 'NASASpaceApps2025@'))
     file.close()
 
 print('Saved .netrc to:', homeDir)
