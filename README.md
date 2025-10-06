@@ -46,4 +46,4 @@ You can access and test the application at the following address:
 
 Field | Address
 --- | ---
-**Link** | **https://nini1504.github.io/HackatonNasaSpaceApps/**
+**Link** | **https://staticfile-2f3f5.wasmer.app/**
