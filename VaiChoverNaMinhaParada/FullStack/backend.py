@@ -208,7 +208,7 @@ CORS(app)
 @app.route('/')
 def serve_frontend():
     # Agora usamos a função interna do Flask, que é otimizada para isso
-    return app.send_static_file('index.html')
+    return send_file("index.html")
 
 # Rota da API para a previsão do tempo
 @app.route('/api/forecast', methods=['POST'])
