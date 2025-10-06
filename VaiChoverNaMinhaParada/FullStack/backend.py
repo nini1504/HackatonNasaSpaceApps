@@ -9,47 +9,32 @@ from datetime import datetime
 import platform
 import shutil
 import math
-from flask import Flask, request, jsonify, send_file, send_from_directory
+from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from prophet import Prophet
 
 # --- INÍCIO DA SEÇÃO DE CONFIGURAÇÃO ---
-
-# URLs da API
 signin_url = "https://api.giovanni.earthdata.nasa.gov/signin"
 time_series_url = "https://api.giovanni.earthdata.nasa.gov/timeseries"
-
-# Período histórico para buscar dados. A data final agora é dinâmica.
 time_start = "2000-09-01T00:00:00"
-time_end = datetime.now().strftime('%Y-%m-%d') + "T23:59:59" # BUG CRÍTICO CORRIGIDO AQUI
-
-# Variáveis do GES DISC
+time_end = datetime.now().strftime('%Y-%m-%d') + "T23:59:59"
 prefix = "GLDAS_NOAH025_3H_2_1"
 variables = [
-    "_Tair_f_inst",    # Temperatura
-    "_Qair_f_inst",    # Umidade
-    "_Rainf_tavg",     # Precipitação de chuva
-    "_Snowf_tavg",     # Precipitação de neve
-    "_Wind_f_inst",    # Velocidade do vento
-    "_Psurf_f_inst"    # Pressão
+    "_Tair_f_inst", "_Qair_f_inst", "_Rainf_tavg",
+    "_Snowf_tavg", "_Wind_f_inst", "_Psurf_f_inst"
 ]
 
-
-# --- FUNÇÃO DE AUTENTICAÇÃO REATORADA ---
+# --- FUNÇÃO DE AUTENTICAÇÃO CORRIGIDA ---
 def get_nasa_token():
-    """
-    Obtém um novo token de autenticação da NASA Earthdata.
-    Esta função deve ser chamada a cada nova requisição para evitar tokens expirados.
-    """
     homeDir = os.path.expanduser("~") + os.sep
     urs = 'urs.earthdata.nasa.gov'
     
-    # IMPORTANTE: Em um ambiente de produção, não armazene credenciais diretamente no código.
-    # Use variáveis de ambiente ou um serviço de gerenciamento de segredos.
     nasa_username = 'matheushcp7'
     nasa_password = '27012004Mhcp!!!'
 
-    # Cria os arquivos de configuração necessários pela API
+    if not nasa_username or not nasa_password:
+        raise ValueError("Credenciais da NASA (NASA_USERNAME, NASA_PASSWORD) não foram encontradas nas variáveis de ambiente.")
+
     with open(homeDir + '.netrc', 'w') as file:
         file.write(f'machine {urs} login {nasa_username} password {nasa_password}')
     
@@ -63,40 +48,28 @@ def get_nasa_token():
     if platform.system() == "Windows":
         shutil.copy2(homeDir + '.dodsrc', os.getcwd())
 
-    # Obtém as credenciais do arquivo .netrc recém-criado
     creds = netrc.netrc().hosts[urs]
     username, _, password = creds
     
-    # Faz a requisição para obter o token
     response = requests.get(signin_url, auth=HTTPBasicAuth(username, password), allow_redirects=True)
-    response.raise_for_status()  # Lança um erro se a requisição falhar (ex: 401 Unauthorized)
+    response.raise_for_status()
     
     token = response.text.replace('"', '')
     print("Novo token de autenticação da NASA obtido com sucesso.")
-    print(f"Token: {token[:10]}... (truncado)")
     return token
- 
-# --- FUNÇÕES DE PROCESSAMENTO DE DADOS ---
 
+# --- FUNÇÕES DE PROCESSAMENTO DE DADOS ---
 def call_time_series(lat, lon, time_start, time_end):
-    """
-    Busca os dados de séries temporais da API da NASA para todas as variáveis.
-    Agora obtém um novo token a cada chamada.
-    """
     try:
-        token = get_nasa_token() # OBTÉM UM NOVO TOKEN AQUI
+        token = get_nasa_token()
     except Exception as e:
         print(f"Falha ao obter token de autenticação: {e}")
-        # Retorna uma lista de respostas de erro para que o processo possa falhar de forma controlada
         error_response = f"Authentication failed: {e}"
         return [error_response] * len(variables)
-
     responses = []
     for variable in variables:
         query_parameters = {
-            "data": prefix + variable,
-            "location": f"[{lat},{lon}]",
-            "time": f"{time_start}/{time_end}"
+            "data": prefix + variable, "location": f"[{lat},{lon}]", "time": f"{time_start}/{time_end}"
         }
         headers = {"authorizationtoken": token}
         response = requests.get(time_series_url, params=query_parameters, headers=headers)
@@ -104,7 +77,6 @@ def call_time_series(lat, lon, time_start, time_end):
     return responses
 
 def parse_csv(resp):
-    # (Sua função parse_csv continua a mesma, já está robusta)
     with io.StringIO(resp) as f:
         headers = {}
         f.read(1)
@@ -124,7 +96,6 @@ def parse_csv(resp):
         )
     return headers, df
 
-# (As funções de cálculo umidade_relativa e estimar_chance_chuva continuam as mesmas)
 def umidade_relativa(q, T, P):
     e_s = 6.112 * math.exp((17.67 * T) / (T + 243.5)) * 100
     e = (q * P) / (0.622 + q)
@@ -137,9 +108,7 @@ def estimar_chance_chuva(T, q, P, vento, precip):
     P_chuva = k1*RH + k2*(1013-P) + k3*vento
     return P_chuva
 
-
 def result_forecast(lat, lon, date, time):
-    # (Sua função de previsão, que já estava corrigida, continua a mesma)
     resp = call_time_series(lat, lon, time_start, time_end)
     dataframes = []
     for r in resp:
@@ -150,7 +119,6 @@ def result_forecast(lat, lon, date, time):
             print(f"Falha ao processar CSV para uma variável. Erro: {e}. Resposta recebida: '{r[:200]}'")
             continue
     if not dataframes: raise ValueError("Não foi possível obter ou processar dados da API.")
-
     result = []
     for df in dataframes:
         if df.shape[0] < 2:
@@ -168,10 +136,8 @@ def result_forecast(lat, lon, date, time):
         forecast = m.predict(future_df)
         predicted_value = forecast.loc[forecast['ds'] == pd.to_datetime(date), 'yhat']
         result.append(predicted_value)
-
     if not all(isinstance(r, pd.Series) and len(r) > 0 and not r.isnull().all() for r in result) or len(result) < len(variables):
         raise ValueError("A previsão falhou para uma ou mais variáveis, resultando em dados vazios.")
-
     C = (float(result[0].iloc[0]) - 273.15)
     q = float(result[1].iloc[0])
     precip = float(result[2].iloc[0])
@@ -181,7 +147,6 @@ def result_forecast(lat, lon, date, time):
     K = float(result[0].iloc[0])
     RH = umidade_relativa(q, C, P * 100)
     chance_chuva = estimar_chance_chuva(C, q, P, vento, precip)
-
     return {
         "Temperatura_C": round(C, 2), "Temperatura_F": round(C * 1.8 + 32, 2),
         "Umidade_Relativa": round(RH, 2), "Chance_Chuva": round(chance_chuva, 2),
@@ -190,27 +155,19 @@ def result_forecast(lat, lon, date, time):
         "Temperatura_K": round(K, 2)
     }
 
-# --- SEÇÃO DO FLASK APP (VERSÃO FINAL E CORRETA) ---
-
-# Define a pasta raiz do projeto, onde estão index.html, style.css, script.js, etc.
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-
-# Configura o Flask para saber ONDE estão os arquivos estáticos e COMO servi-los
+# --- SEÇÃO DO FLASK APP (VERSÃO FINAL E SIMPLIFICADA) ---
 app = Flask(
-    __name__,
-    static_folder=project_root,    # A pasta com os arquivos é a raiz do projeto
-    static_url_path=''             # Sirva-os a partir da URL raiz (ex: /style.css)
+    _name_,
+    static_folder='.', # MODIFICAÇÃO 2: Diz ao Flask que os arquivos estáticos (css, js) estão na mesma pasta
+    static_url_path=''
 )
 CORS(app)
 
-
-# Rota principal para servir o index.html
 @app.route('/')
 def serve_frontend():
-    # Agora usamos a função interna do Flask, que é otimizada para isso
+    # Esta rota agora encontra o index.html na mesma pasta
     return send_file("index.html")
 
-# Rota da API para a previsão do tempo
 @app.route('/api/forecast', methods=['POST'])
 def forecast_api():
     data = request.json
@@ -220,14 +177,14 @@ def forecast_api():
     try:
         dt_obj = datetime.strptime(timestamp, '%Y-%m-%dT%H:%M')
         date = dt_obj.strftime('%Y-%m-%d')
-        hour = (round(dt_obj.hour / 3) * 3) % 24
-        hour_str = f"{hour:02d}:00:00"
+        hour_str = f"{(round(dt_obj.hour / 3) * 3) % 24:02d}:00:00"
         result = result_forecast(lat, lon, date, hour_str)
         return jsonify(result)
     except Exception as e:
         print(f"API error: {e}")
-        return jsonify({"error: "f"Internal server error {str(e)}"}), 500
+        # MODIFICAÇÃO 3: Corrigindo o typo no jsonify
+        return jsonify({"error": f"Internal server error: {str(e)}"}), 500
     
-# Run the Flask app
+# Bloco para rodar localmente (Gunicorn não usa isso, mas é bom para testes)
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
