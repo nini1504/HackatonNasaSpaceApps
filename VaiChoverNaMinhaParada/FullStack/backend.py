@@ -157,7 +157,7 @@ def result_forecast(lat, lon, date, time):
 
 # --- SEÇÃO DO FLASK APP (VERSÃO FINAL E SIMPLIFICADA) ---
 app = Flask(
-    _name_,
+    __name__,
     static_folder='.', # MODIFICAÇÃO 2: Diz ao Flask que os arquivos estáticos (css, js) estão na mesma pasta
     static_url_path=''
 )
