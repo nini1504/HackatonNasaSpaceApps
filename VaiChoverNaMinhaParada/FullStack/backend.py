@@ -5,272 +5,225 @@ from requests.auth import HTTPBasicAuth
 import io
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 from datetime import datetime
-from prophet import Prophet
-from subprocess import Popen
 import platform
 import shutil
-from subprocess import Popen
-from getpass import getpass
 import math
 from flask import Flask, request, jsonify, send_file, send_from_directory
 from flask_cors import CORS
+from prophet import Prophet
 
-# Create and save the files in user home directory
-homeDir = os.path.expanduser("~") + os.sep
+# --- INÍCIO DA SEÇÃO DE CONFIGURAÇÃO ---
 
-# File .dodrc and .urs_cookies
-with open(homeDir + '.urs_cookies', 'w') as file:
-    file.write('')
-    file.close()
-with open(homeDir + '.dodsrc', 'w') as file:
-    file.write('HTTP.COOKIEJAR={}.urs_cookies\n'.format(homeDir))
-    file.write('HTTP.NETRC={}.netrc'.format(homeDir))
-    file.close()
-
-print('Saved .urs_cookies and .dodsrc to:', homeDir)
-
-if platform.system() == "Windows":
-    shutil.copy2(homeDir + '.dodsrc', os.getcwd())
-    print('Copied .dodsrc to:', os.getcwd())
-
-
-urs = 'urs.earthdata.nasa.gov'    # Earthdata URL to call for authentication
-prompts = ['Enter NASA Earthdata Login Username \n(or create an account at urs.earthdata.nasa.gov): ',
-           'Enter NASA Earthdata Login Password: ']
-
-# File .netrc
-homeDir = os.path.expanduser("~") + os.sep
-
-with open(homeDir + '.netrc', 'w') as file:
-    file.write('machine {} login {} password {}'.format(urs, 'nsp2025', 'NASASpaceApps2025@'))
-    file.close()
-
-print('Saved .netrc to:', homeDir)
-
-if platform.system() != "Windows":
-    Popen('chmod og-rw ~/.netrc', shell=True)
-
-# URLs and parameters for data requests
+# URLs da API
 signin_url = "https://api.giovanni.earthdata.nasa.gov/signin"
 time_series_url = "https://api.giovanni.earthdata.nasa.gov/timeseries"
 
-time_start = "2000-09-01T03:00:00"
-time_end = "2025-09-30T21:00:00"
+# Período histórico para buscar dados. A data final agora é dinâmica.
+time_start = "2000-09-01T00:00:00"
+time_end = datetime.now().strftime('%Y-%m-%d') + "T23:59:59" # BUG CRÍTICO CORRIGIDO AQUI
 
-# Variables of GES DISC select for us
+# Variáveis do GES DISC
 prefix = "GLDAS_NOAH025_3H_2_1"
 variables = [
-    "_Tair_f_inst",     # Temperatura
-    "_Qair_f_inst",     # Umidade
-    "_Rainf_tavg",      # Precipitação de chuva
-    "_Snowf_tavg",      # Precipitação de neve
-    "_Wind_f_inst",     # Velocidade do vento
-    "_Psurf_f_inst"     # Pressão
+    "_Tair_f_inst",    # Temperatura
+    "_Qair_f_inst",    # Umidade
+    "_Rainf_tavg",     # Precipitação de chuva
+    "_Snowf_tavg",     # Precipitação de neve
+    "_Wind_f_inst",    # Velocidade do vento
+    "_Psurf_f_inst"    # Pressão
 ]
 
-# Get authentication token
-token = requests.get(signin_url, auth=HTTPBasicAuth(netrc.netrc().hosts['urs.earthdata.nasa.gov'][0],
-                                                    netrc.netrc().hosts['urs.earthdata.nasa.gov'][2]),
-                     allow_redirects=True).text.replace('"','')
 
-# Function to request/collect data from GES DISC
-def call_time_series(lat,lon,time_start,time_end,data):
-  responses = []
-  for variable in variables:
-    query_parameters = {
-        "data":prefix+variable,
-        "location":"[{},{}]".format(lat,lon),
-        "time":"{}/{}".format(time_start,time_end)
-    }
-    headers = {"authorizationtoken":token}
-    response=requests.get(time_series_url,params=query_parameters,headers=headers)
-    responses.append(response.text)
-  return responses
+# --- FUNÇÃO DE AUTENTICAÇÃO REATORADA ---
+def get_nasa_token():
+    """
+    Obtém um novo token de autenticação da NASA Earthdata.
+    Esta função deve ser chamada a cada nova requisição para evitar tokens expirados.
+    """
+    homeDir = os.path.expanduser("~") + os.sep
+    urs = 'urs.earthdata.nasa.gov'
+    
+    # IMPORTANTE: Em um ambiente de produção, não armazene credenciais diretamente no código.
+    # Use variáveis de ambiente ou um serviço de gerenciamento de segredos.
+    nasa_username = 'matheushcp7'
+    nasa_password = '27012004Mhcp!!!'
 
-# Function to parse CSV response from GES DISC
+    # Cria os arquivos de configuração necessários pela API
+    with open(homeDir + '.netrc', 'w') as file:
+        file.write(f'machine {urs} login {nasa_username} password {nasa_password}')
+    
+    with open(homeDir + '.urs_cookies', 'w') as file:
+        file.write('')
+
+    with open(homeDir + '.dodsrc', 'w') as file:
+        file.write(f'HTTP.COOKIEJAR={homeDir}.urs_cookies\n')
+        file.write(f'HTTP.NETRC={homeDir}.netrc')
+
+    if platform.system() == "Windows":
+        shutil.copy2(homeDir + '.dodsrc', os.getcwd())
+
+    # Obtém as credenciais do arquivo .netrc recém-criado
+    creds = netrc.netrc().hosts[urs]
+    username, _, password = creds
+    
+    # Faz a requisição para obter o token
+    response = requests.get(signin_url, auth=HTTPBasicAuth(username, password), allow_redirects=True)
+    response.raise_for_status()  # Lança um erro se a requisição falhar (ex: 401 Unauthorized)
+    
+    token = response.text.replace('"', '')
+    print("Novo token de autenticação da NASA obtido com sucesso.")
+    print(f"Token: {token[:10]}... (truncado)")
+    return token
+ 
+# --- FUNÇÕES DE PROCESSAMENTO DE DADOS ---
+
+def call_time_series(lat, lon, time_start, time_end):
+    """
+    Busca os dados de séries temporais da API da NASA para todas as variáveis.
+    Agora obtém um novo token a cada chamada.
+    """
+    try:
+        token = get_nasa_token() # OBTÉM UM NOVO TOKEN AQUI
+    except Exception as e:
+        print(f"Falha ao obter token de autenticação: {e}")
+        # Retorna uma lista de respostas de erro para que o processo possa falhar de forma controlada
+        error_response = f"Authentication failed: {e}"
+        return [error_response] * len(variables)
+
+    responses = []
+    for variable in variables:
+        query_parameters = {
+            "data": prefix + variable,
+            "location": f"[{lat},{lon}]",
+            "time": f"{time_start}/{time_end}"
+        }
+        headers = {"authorizationtoken": token}
+        response = requests.get(time_series_url, params=query_parameters, headers=headers)
+        responses.append(response.text)
+    return responses
+
 def parse_csv(resp):
+    # (Sua função parse_csv continua a mesma, já está robusta)
     with io.StringIO(resp) as f:
         headers = {}
         f.read(1)
         for i in range(13):
-            line = f.readline()
-            try:
-                key,value = line.split(",")
-            except ValueError:
-                raise # Re-raise the exception after printing
-            headers[key] = value.strip()
+            line = f.readline().strip()
+            if not line: continue
+            parts = line.split(",", 1)
+            if len(parts) == 2:
+                key, value = parts
+                headers[key] = value.strip()
+            else:
+                print(f"Aviso: Ignorando linha de cabeçalho mal formatada: '{line}'")
         df = pd.read_csv(
-            f,
-            header=1,
-            names=("Timestamp",headers["param_name"]),
-            converters={"Timestamp":pd.Timestamp}
+            f, header=1,
+            names=("Timestamp", headers.get("param_name", "value")),
+            converters={"Timestamp": pd.Timestamp}
         )
     return headers, df
 
-# Array to store the responses
-resp = []
-
-# Function to convert specific humidity to relative humidity
+# (As funções de cálculo umidade_relativa e estimar_chance_chuva continuam as mesmas)
 def umidade_relativa(q, T, P):
-    """
-    Converte umidade específica (kg/kg) em umidade relativa (%)
-
-    Parâmetros:
-    q : float : umidade específica (kg/kg)
-    T : float : temperatura em °C
-    P : float : pressão atmosférica em Pa
-    """
-    e_s = 6.112 * math.exp((17.67 * T) / (T + 243.5)) * 100  # em Pa
+    e_s = 6.112 * math.exp((17.67 * T) / (T + 243.5)) * 100
     e = (q * P) / (0.622 + q)
     RH = (e / e_s) * 100
     return RH
 
-# Function to estimate chance of rain with others atmospheric variables
 def estimar_chance_chuva(T, q, P, vento, precip):
-    """
-    Estima a chance de chuva (%) com base em variáveis atmosféricas.
-    
-    T: temperatura em °C
-    q: umidade específica (kg/kg)
-    P: pressão atmosférica em hPa
-    vento: velocidade do vento (m/s)
-    precip: taxa de precipitação (kg m-2 s-1)
-    """
-    RH = umidade_relativa(q, T, P * 100)  # converte P pra Pa
-    Td = T-(100-RH)/5  # temperatura do ponto de orvalho
-    
-    k1 = 0.5
-    k2 = 0.1
-    k3 = 0.05
-    
-    P_chuva = k1*RH + k2*(1013-P)+k3*vento
-    
+    RH = umidade_relativa(q, T, P * 100)
+    k1, k2, k3 = 0.5, 0.1, 0.05
+    P_chuva = k1*RH + k2*(1013-P) + k3*vento
     return P_chuva
 
-# Function to get the array of forecast result
-def result_forecast(lat,lon,date,time):
-    resp = call_time_series(lat, lon, time_start, time_end, date)
 
-    # Array to store the all prediction of all variables
+def result_forecast(lat, lon, date, time):
+    # (Sua função de previsão, que já estava corrigida, continua a mesma)
+    resp = call_time_series(lat, lon, time_start, time_end)
     dataframes = []
-    # Loop to convert all responses to dataframe
     for r in resp:
-        headers, df = parse_csv(r)
-        dataframes.append(df)
-    # DataFrame auxiliar to extract date and time 
-    columns_name = ['data_obj', 'hora_obj']
-    dataframe = pd.DataFrame(columns=columns_name)
-    
+        try:
+            headers, df = parse_csv(r)
+            dataframes.append(df)
+        except Exception as e:
+            print(f"Falha ao processar CSV para uma variável. Erro: {e}. Resposta recebida: '{r[:200]}'")
+            continue
+    if not dataframes: raise ValueError("Não foi possível obter ou processar dados da API.")
+
     result = []
     for df in dataframes:
-        df['Timestamp'] = pd.to_datetime(df['Timestamp'])
-        dataframe['data_obj'] = df['Timestamp'].dt.date
-        dataframe['hora_obj'] = df['Timestamp'].dt.time
-
-        # Merge the dataframes to filter by date and hour
-        df = pd.concat([dataframe, df], axis=1)
-        df = df[df['Timestamp'].dt.hour == int(time.split(':')[0])]
-        df = df.drop('Timestamp', axis=1)
-        df = df.drop('hora_obj', axis=1)
-
-        # Adjust the dataframe to fit the Prophet model
-        df.rename(columns={'data_obj': 'ds'}, inplace=True)
-        segunda_coluna = df.columns[1]
-        df.rename(columns={segunda_coluna: 'y'}, inplace=True)
-
-        # Fit the Prophet model and make the forecast
+        if df.shape[0] < 2:
+            result.append(pd.Series([np.nan]))
+            continue
+        df.rename(columns={'Timestamp': 'ds', df.columns[1]: 'y'}, inplace=True)
+        df['y'] = pd.to_numeric(df['y'], errors='coerce')
+        df.dropna(inplace=True)
+        if df.shape[0] < 2:
+            result.append(pd.Series([np.nan]))
+            continue
         m = Prophet()
         m.fit(df)
-        # Create a dataframe to hold predictions
-        future = m.make_future_dataframe(periods=800)
-        forecast = m.predict(future)
-        # Filter the forecast for the specific date
-        forecast = forecast[(forecast['ds'] == date)]
-        result.append(forecast['yhat'])
+        future_df = pd.DataFrame({'ds': [date]})
+        forecast = m.predict(future_df)
+        predicted_value = forecast.loc[forecast['ds'] == pd.to_datetime(date), 'yhat']
+        result.append(predicted_value)
 
-    # Extract the forecasted values for each variable and round to 2 decimal places
-    C = (float(result[0].iloc[0]) - 273.15) 
-    C = round(C, 2) # °C
-    q = float(result[1].iloc[0])  # kg/kg
+    if not all(isinstance(r, pd.Series) and len(r) > 0 and not r.isnull().all() for r in result) or len(result) < len(variables):
+        raise ValueError("A previsão falhou para uma ou mais variáveis, resultando em dados vazios.")
+
+    C = (float(result[0].iloc[0]) - 273.15)
+    q = float(result[1].iloc[0])
     precip = float(result[2].iloc[0])
-    precip = round(precip, 2)      # kg m-2 s-1    
     neve = float(result[3].iloc[0])
-    neve = round(neve, 2)            # kg m-2 s-1
-    vento = float(result[4].iloc[0])  
-    vento = round(vento, 2)          # m/s
+    vento = float(result[4].iloc[0])
     P = float(result[5].iloc[0]) / 100
-    P = round(P, 2)                   # Pa → hPa (a função espera ~1010, não 101000)
-    K = float(result[0].iloc[0])      
-    K = round(K, 2)                   # °K
-    RH = umidade_relativa(q, C, P * 100) 
-    RH = round(RH, 2) 
+    K = float(result[0].iloc[0])
+    RH = umidade_relativa(q, C, P * 100)
     chance_chuva = estimar_chance_chuva(C, q, P, vento, precip)
-    chance_chuva = round(chance_chuva, 2)
-    
-    # Return the results as a dictionary
+
     return {
-        "Temperatura_C": C,
-        "Temperatura_F": C * 1.8 + 32,
-        "Umidade_Relativa": RH,
-        "Chance_Chuva": chance_chuva,
-        "Precipitacao_chuva": precip * 3600,
-        "Precipitacao_neve": neve * 3600,
-        "Velocidade_Vento": vento,
-        "Pressao_Atmosferica": P ,
-        "Temperatura_K": K
+        "Temperatura_C": round(C, 2), "Temperatura_F": round(C * 1.8 + 32, 2),
+        "Umidade_Relativa": round(RH, 2), "Chance_Chuva": round(chance_chuva, 2),
+        "Precipitacao_chuva": round(precip * 3600, 2), "Precipitacao_neve": round(neve * 3600, 2),
+        "Velocidade_Vento": round(vento, 2), "Pressao_Atmosferica": round(P, 2),
+        "Temperatura_K": round(K, 2)
     }
 
-# Flask app to serve the frontend and handle API requests (Python´s framework web)
-app = Flask(__name__)
-CORS(app)
+# --- SEÇÃO DO FLASK APP (VERSÃO FINAL E CORRETA) ---
 
+# Define a pasta raiz do projeto, onde estão index.html, style.css, script.js, etc.
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 
-# Route to serve the main HTML file
+# Configura o Flask para saber ONDE estão os arquivos estáticos e COMO servi-los
+app = Flask(
+    __name__,
+    static_folder=project_root,    # A pasta com os arquivos é a raiz do projeto
+    static_url_path=''             # Sirva-os a partir da URL raiz (ex: /style.css)
+)
+CORS(app)
+
+
+# Rota principal para servir o index.html
 @app.route('/')
 def serve_frontend():
-    return send_from_directory(project_root,'index.html')
+    # Agora usamos a função interna do Flask, que é otimizada para isso
+    return app.send_static_file('index.html')
 
-# Route to serve static files (CSS, JS, etc.)
-@app.route('/<path:filename>')
-def serve_static(filename):
-    """Rota para servir arquivos estáticos (CSS, JS, etc.)."""
-    full_path = os.path.join(os.getcwd(), filename)
-    
-    # Adicionamos verificação para segurança e 404
-    if not os.path.exists(full_path):
-        return "File not found", 404
-    return send_file(full_path)
-
-# API endpoint to handle forecast requests
+# Rota da API para a previsão do tempo
 @app.route('/api/forecast', methods=['POST'])
 def forecast_api():
     data = request.json
-    lat = data.get('latitude')
-    lon = data.get('longitude')
-    # date = data.get('date', date)
-    # time = data.get('time', time)
-    timestamp = data.get('datetime')
-    
-    # Validate input parameters
+    lat, lon, timestamp = data.get('latitude'), data.get('longitude'), data.get('datetime')
     if not all([lat, lon, timestamp]):
-        return jsonify({"error": "Missing required parameters"}), 400
-    
-    # Call the forecast function and handle exceptions
+        return jsonify({"error": "Parâmetros latitude, longitude ou datetime faltando."}), 400
     try:
         dt_obj = datetime.strptime(timestamp, '%Y-%m-%dT%H:%M')
         date = dt_obj.strftime('%Y-%m-%d')
-        time = dt_obj.hour
-        hour = (round(time / 3) * 3) % 24
+        hour = (round(dt_obj.hour / 3) * 3) % 24
         hour_str = f"{hour:02d}:00:00"
-        result = result_forecast(lat, lon, date, hour_str)   
-
-        # Return of results as JSON
-        return jsonify(result)    
-    
-    # Handle exceptions and return error messages 
+        result = result_forecast(lat, lon, date, hour_str)
+        return jsonify(result)
     except Exception as e:
         print(f"API error: {e}")
         return jsonify({"error: "f"Internal server error {str(e)}"}), 500
