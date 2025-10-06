@@ -13,7 +13,6 @@ from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from prophet import Prophet
 
-# --- INÍCIO DA SEÇÃO DE CONFIGURAÇÃO ---
 signin_url = "https://api.giovanni.earthdata.nasa.gov/signin"
 time_series_url = "https://api.giovanni.earthdata.nasa.gov/timeseries"
 time_start = "2000-09-01T00:00:00"
@@ -24,7 +23,6 @@ variables = [
     "_Snowf_tavg", "_Wind_f_inst", "_Psurf_f_inst"
 ]
 
-# --- FUNÇÃO DE AUTENTICAÇÃO CORRIGIDA ---
 def get_nasa_token():
     homeDir = os.path.expanduser("~") + os.sep
     urs = 'urs.earthdata.nasa.gov'
@@ -58,7 +56,6 @@ def get_nasa_token():
     print("Novo token de autenticação da NASA obtido com sucesso.")
     return token
 
-# --- FUNÇÕES DE PROCESSAMENTO DE DADOS ---
 def call_time_series(lat, lon, time_start, time_end):
     try:
         token = get_nasa_token()
@@ -158,14 +155,13 @@ def result_forecast(lat, lon, date, time):
 # --- SEÇÃO DO FLASK APP (VERSÃO FINAL E SIMPLIFICADA) ---
 app = Flask(
     __name__,
-    static_folder='.', # MODIFICAÇÃO 2: Diz ao Flask que os arquivos estáticos (css, js) estão na mesma pasta
+    static_folder='.', 
     static_url_path=''
 )
 CORS(app)
 
 @app.route('/')
 def serve_frontend():
-    # Esta rota agora encontra o index.html na mesma pasta
     return send_file("index.html")
 
 @app.route('/api/forecast', methods=['POST'])
@@ -182,9 +178,7 @@ def forecast_api():
         return jsonify(result)
     except Exception as e:
         print(f"API error: {e}")
-        # MODIFICAÇÃO 3: Corrigindo o typo no jsonify
         return jsonify({"error": f"Internal server error: {str(e)}"}), 500
     
-# Bloco para rodar localmente (Gunicorn não usa isso, mas é bom para testes)
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
