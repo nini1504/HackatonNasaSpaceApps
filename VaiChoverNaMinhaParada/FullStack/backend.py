@@ -27,8 +27,8 @@ def get_nasa_token():
     homeDir = os.path.expanduser("~") + os.sep
     urs = 'urs.earthdata.nasa.gov'
     
-    nasa_username = 'matheushcp7'
-    nasa_password = '27012004Mhcp!!!'
+    nasa_username = 'seuUsuário'
+    nasa_password = 'suaSenha'
 
     if not nasa_username or not nasa_password:
         raise ValueError("Credenciais da NASA (NASA_USERNAME, NASA_PASSWORD) não foram encontradas nas variáveis de ambiente.")
